@@ -23,4 +23,13 @@ export default {
   text-align: center;
   color: #2c3e50;
 }
+@font-face {
+  font-family: 'Bruce Forever';
+  src: url('@/assets/BruceForeverRegular-X3jd2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+body{
+  margin: 0;
+}
 </style>
