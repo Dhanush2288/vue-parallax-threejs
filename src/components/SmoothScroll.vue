@@ -4,22 +4,21 @@
     <div class="three-container" ref="threeContainer"></div>
 
     <!-- Custom Portfolio Sections -->
-    <section class="intro-section">
+    <section class="intro-section" v-parallax:scroll="0.5">
       <div class="firstdiv">
         <div class="wrapper">
           <h2> I'm</h2>
           <h1>
           <span :class="{ sparkle: isSparkling }" id="batman-name">{{
             displayName
-          }}</span
-          >.
+          }}</span>
         </h1>
         </div>
  
        </div>
     </section>
 
-    <section class="about-section">
+    <section class="about-section" v-parallax:scroll="0.3">
       <h2>About Me</h2>
       <p>
         I'm a web developer who loves building 3D experiences. This portfolio
@@ -27,7 +26,7 @@
       </p>
     </section>
 
-    <section class="projects-section">
+    <section class="projects-section" v-parallax:scroll="0.5">
       <h2>Projects</h2>
       <p>
         Here are some of the projects I've worked on, combining both 3D and
@@ -35,7 +34,7 @@
       </p>
     </section>
 
-    <section class="contact-section">
+    <section class="contact-section" v-parallax:scroll="0.3">
       <h2>Contact Me</h2>
       <p>If you'd like to work with me, feel free to reach out!</p>
     </section>
@@ -64,45 +63,65 @@ export default {
   },
   methods: {
     initThree() {
-      // Three.js setup
-      this.scene = new THREE.Scene();
-      this.camera = new THREE.PerspectiveCamera(
-        50,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.$refs.threeContainer.appendChild(this.renderer.domElement);
+  // Three.js setup
+  this.scene = new THREE.Scene();
+  this.camera = new THREE.PerspectiveCamera(
+    50,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  this.renderer.setSize(window.innerWidth, window.innerHeight);
+  this.renderer.shadowMap.enabled = true; // Enable shadow mapping
+  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
+  this.$refs.threeContainer.appendChild(this.renderer.domElement);
 
-      // Lighting for the 3D model
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-      this.scene.add(ambientLight);
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xFFF1C7, 1);
+  this.scene.add(ambientLight);
 
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(5, 10, 7.5).normalize();
-      this.scene.add(directionalLight);
+  const directionalLight = new THREE.DirectionalLight(0xFFF1C7, 1);
+  directionalLight.position.set(5, 10, 7.5).normalize();
+  directionalLight.castShadow = true; // Enable shadow for directional light
+  this.scene.add(directionalLight);
 
-      // Load the GLB model using GLTFLoader
-      const loader = new GLTFLoader();
-      loader.load("/bat.glb", (gltf) => {
-        this.model = gltf.scene;
-        this.model.position.set(0, -5, 0);
-        this.model.scale.set(4, 4, 4);
-        this.scene.add(this.model);
 
-        // Adjust the camera's position
-        this.camera.position.set(0, 1, 5);
+  // Load the GLB model using GLTFLoader
+  const loader = new GLTFLoader();
+  loader.load("/bat2.glb", (gltf) => {
+    this.model = gltf.scene;
 
-        // Start the animation loop
-        this.animate();
-        this.initTextReveal(); // Initialize the text reveal effect
+    // Apply PBR material to the model if not already set in the GLB
+    this.model.traverse((child) => {
+      if (child.isMesh) {
+        // child.material = new THREE.MeshStandardMaterial({
+        //   color: 0xFFFFFF, // Base color can be adjusted based on your model's needs
+        //   metalness: 0.5, // Adjust the reflectivity
+        //   roughness: 0.5, // Adjust the surface smoothness
+        //   // You can also load textures if available
+        // });
+        child.castShadow = true; // Enable shadows for the model
+        child.receiveShadow = true; // If applicable
+      }
+    });
 
-        // Initialize scroll animations after model is loaded
-        this.initScrollAnimations();
-      });
-    },
+    this.model.position.set(0, -5, 0);
+    this.model.scale.set(4, 4, 4);
+    this.scene.add(this.model);
+
+    // Adjust the camera's position
+    this.camera.position.set(0, 1, 5);
+
+    // Start the animation loop
+    this.animate();
+    this.initTextReveal(); // Initialize the text reveal effect
+
+    // Initialize scroll animations after the model is loaded
+    this.initScrollAnimations();
+  });
+}
+,
     initTextReveal() {
       const text = baffle("#batman-name"); // Initialize Baffle.js on the span
       text.set({
@@ -156,14 +175,27 @@ export default {
 </script>
 
 <style scoped>
+.firstdiv{
+  height: 100vh;
+  position: relative;
+}
+.intro-section {
+    background: url('../assets/1225697.jpg') no-repeat center center / cover;
+}
+
+.firstdiv .wrapper{
+  position: absolute;
+  bottom: 30%;
+  left: 10%;
+}
 .scroll-container {
   position: relative;
   z-index: 5; /* Ensures that the text sections are on top of the 3D model */
 }
-.intro-section{
+/* .intro-section{
   background: rgb(0, 0, 0);
   background: linear-gradient(43deg, rgb(0, 0, 0) 50%, rgba(64,64,64,1) 100%);
-}
+} */
 
 .three-container {
   position: fixed;
@@ -201,17 +233,14 @@ section {
 .contact-section {
   background-color: #bbb;
 }
-
+/* 
 h1,
 h2,
 p {
   margin: 0;
-  padding: 20px;
   text-align: center;
   font-size: 2rem;
   color: #333;
   z-index: 10;
-  font-family: 'Bruce Forever', sans-serif;
-
-}
+} */
 </style>
