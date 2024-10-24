@@ -1,21 +1,17 @@
 <template>
   <div class="scroll-container">
-    <!-- 3D Model Section (Fixed in the background) -->
     <div class="three-container" ref="threeContainer"></div>
-
-    <!-- Custom Portfolio Sections -->
     <section class="intro-section" v-parallax:scroll="0.5">
       <div class="firstdiv">
         <div class="wrapper">
-          <h2> I'm</h2>
+          <h2>I'm</h2>
           <h1>
-          <span :class="{ sparkle: isSparkling }" id="batman-name">{{
-            displayName
-          }}</span>
-        </h1>
+            <span :class="{ sparkle: isSparkling }" id="batman-name">{{
+              displayName
+            }}</span>
+          </h1>
         </div>
- 
-       </div>
+      </div>
     </section>
 
     <section class="about-section" v-parallax:scroll="0.3">
@@ -43,10 +39,11 @@
 
 <script>
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"; // Import GLTFLoader for GLB models
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import baffle from "baffle"; // Import Baffle.js
+import baffle from "baffle";
+import { Vector3 } from "three";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -54,7 +51,7 @@ export default {
   name: "SmoothScroll",
   data() {
     return {
-      displayName: "Batman", // Initial display name
+      displayName: "Batman",
       isSparkling: true,
     };
   },
@@ -63,88 +60,164 @@ export default {
   },
   methods: {
     initThree() {
-  // Three.js setup
-  this.scene = new THREE.Scene();
-  this.camera = new THREE.PerspectiveCamera(
-    50,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  this.renderer.setSize(window.innerWidth, window.innerHeight);
-  this.renderer.shadowMap.enabled = true; // Enable shadow mapping
-  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
-  this.$refs.threeContainer.appendChild(this.renderer.domElement);
+      this.scene = new THREE.Scene();
+      this.camera = new THREE.PerspectiveCamera(
+        50,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.$refs.threeContainer.appendChild(this.renderer.domElement);
 
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xFFF1C7, 1);
-  this.scene.add(ambientLight);
+      const ambientLight = new THREE.AmbientLight(0x333333, 0.3);
+      this.scene.add(ambientLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xFFF1C7, 1);
-  directionalLight.position.set(5, 10, 7.5).normalize();
-  directionalLight.castShadow = true; // Enable shadow for directional light
-  this.scene.add(directionalLight);
+      const spotlight = new THREE.SpotLight(0xffffff, 1);
+      spotlight.position.set(5, 20, 5);
+      spotlight.angle = Math.PI / 6;
+      spotlight.penumbra = 0.5;
+      spotlight.castShadow = true;
+      this.scene.add(spotlight);
 
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(10, 20, 10);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 4096;
+      directionalLight.shadow.mapSize.height = 4096;
+      directionalLight.shadow.camera.near = 0.1;
+      directionalLight.shadow.camera.far = 50;
+      directionalLight.shadow.camera.left = -10;
+      directionalLight.shadow.camera.right = 10;
+      directionalLight.shadow.camera.top = 10;
+      directionalLight.shadow.camera.bottom = -10;
+      this.scene.add(directionalLight);
 
-  // Load the GLB model using GLTFLoader
-  const loader = new GLTFLoader();
-  loader.load("/bat2.glb", (gltf) => {
-    this.model = gltf.scene;
+      const hemisphereLight = new THREE.HemisphereLight(
+        0xaaaaaa,
+        0x444444,
+        0.6
+      );
+      hemisphereLight.position.set(0, 10, 0);
+      this.scene.add(hemisphereLight);
 
-    // Apply PBR material to the model if not already set in the GLB
-    this.model.traverse((child) => {
-      if (child.isMesh) {
-        // child.material = new THREE.MeshStandardMaterial({
-        //   color: 0xFFFFFF, // Base color can be adjusted based on your model's needs
-        //   metalness: 0.5, // Adjust the reflectivity
-        //   roughness: 0.5, // Adjust the surface smoothness
-        //   // You can also load textures if available
-        // });
-        child.castShadow = true; // Enable shadows for the model
-        child.receiveShadow = true; // If applicable
-      }
-    });
+      const dotGeometry = new THREE.SphereGeometry(0.03, 16, 16);
+      const dotMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: new THREE.Color(0x000000),
+        emissiveIntensity: 1,
+        metalness: 0.5,
+        roughness: 0.3,
+      });
+      this.cursorDot = new THREE.Mesh(dotGeometry, dotMaterial);
+      this.scene.add(this.cursorDot);
 
-    this.model.position.set(0, -5, 0);
-    this.model.scale.set(4, 4, 4);
-    this.scene.add(this.model);
+      const glowColors = [
+        new THREE.Color(0x00c6ff),
+        new THREE.Color(0x5f5fff),
+        new THREE.Color(0xff0080),
+      ];
+      let currentColorIndex = 0;
 
-    // Adjust the camera's position
-    this.camera.position.set(0, 1, 5);
+      const updateGlowColor = () => {
+        const nextColorIndex = (currentColorIndex + 1) % glowColors.length;
+        const nextColor = glowColors[nextColorIndex];
 
-    // Start the animation loop
-    this.animate();
-    this.initTextReveal(); // Initialize the text reveal effect
+        gsap.to(dotMaterial.emissive, {
+          r: nextColor.r,
+          g: nextColor.g,
+          b: nextColor.b,
+          duration: 2,
+          onComplete: () => {
+            currentColorIndex = nextColorIndex;
+            updateGlowColor();
+          },
+        });
+      };
+      this.neonPointLight = new THREE.PointLight(0x9b30ff, 8, 5); // Neon purple light, range of 15 units
+      this.neonPointLight.position.set(1, 2.25, 0.3); // Position to the side of the model
+      //  this.neonPointLight.castShadow = true; // Enable shadow casting for depth
+      this.scene.add(this.neonPointLight);
+      // Add a helper to visualize the PointLight
+      const neonLightHelper = new THREE.PointLightHelper(
+        this.neonPointLight,
+        0.5
+      );
+      //  this.scene.add(neonLightHelper)
+      updateGlowColor();
 
-    // Initialize scroll animations after the model is loaded
-    this.initScrollAnimations();
-  });
-}
-,
+      this.cursorLight = new THREE.PointLight(0x9b30ff, 2, 30);
+      this.cursorLight.position.set(0, 0, 0);
+      this.cursorLight.castShadow = true;
+      this.scene.add(this.cursorLight);
+
+      window.addEventListener("mousemove", this.handleMouseMove.bind(this));
+
+      const loader = new GLTFLoader();
+      loader.load("/bat.glb", (gltf) => {
+        this.model = gltf.scene;
+        this.model.position.set(0, -5, 0);
+        this.model.scale.set(4, 4, 4);
+        this.scene.add(this.model);
+
+        this.renderer.setClearColor(0x000000);
+        this.camera.position.set(0, 1, 5);
+        this.animate();
+        this.initTextReveal();
+        this.initScrollAnimations();
+      });
+    },
+    handleMouseMove(event) {
+      const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      const mousePosition = new THREE.Vector3(mouseX, mouseY, 0.5);
+      mousePosition.unproject(this.camera);
+      const direction = mousePosition.sub(this.camera.position).normalize();
+      const distance = 5;
+      const newPosition = this.camera.position
+        .clone()
+        .add(direction.multiplyScalar(distance));
+
+      // Smoothly move the cursor dot to the new position
+      gsap.to(this.cursorDot.position, {
+        x: newPosition.x,
+        y: newPosition.y,
+        z: newPosition.z,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+
+      // Use gsap to smoothly animate the cursor-following light's movement
+      gsap.to(this.cursorLight.position, {
+        x: newPosition.x,
+        y: newPosition.y,
+        z: newPosition.z,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+    },
     initTextReveal() {
-      const text = baffle("#batman-name"); // Initialize Baffle.js on the span
+      const text = baffle("#batman-name");
       text.set({
         characters: "░▒░ ░██░> ████▓ >█> ░/█>█ ██░░ █<▒ ▓██░ ░/░▒",
         speed: 120,
       });
+      text.start();
 
-      text.start(); // Start the glitch effect
-
-      // Change the name after 3 seconds
       setTimeout(() => {
-        this.isSparkling = false; // Remove sparkle effect
-        text.reveal(500); // Reveal the text over 2 seconds
+        this.isSparkling = false;
+        text.reveal(500);
         setTimeout(() => {
-          this.displayName = "Dhanush"; // Change the display name to Dhanush after reveal
-        }, 500); // Wait until the reveal animation is finished
-      }, 1000); // Wait for 3 seconds before the glitch starts
+          this.displayName = "Dhanush";
+        }, 500);
+      }, 1000);
     },
     initScrollAnimations() {
-      const cameraStartY = 3;
       const cameraEndY = -3;
 
-      // Animate the camera's Y position
       gsap.to(this.camera.position, {
         y: cameraEndY,
         scrollTrigger: {
@@ -155,7 +228,6 @@ export default {
         },
       });
 
-      // Animate the 3D model's rotation
       gsap.to(this.model.rotation, {
         y: 2 * Math.PI,
         scrollTrigger: {
@@ -167,7 +239,11 @@ export default {
       });
     },
     animate() {
-      requestAnimationFrame(this.animate);
+      requestAnimationFrame(this.animate.bind(this));
+      const offset = new THREE.Vector3(0.5, 1, -4); // Adjust the offset as needed
+      // this.neonPointLight.position.copy(
+      //   this.camera.position.clone().add(offset)
+      // );
       this.renderer.render(this.scene, this.camera);
     },
   },
@@ -175,27 +251,21 @@ export default {
 </script>
 
 <style scoped>
-.firstdiv{
+.firstdiv {
   height: 100vh;
   position: relative;
 }
-.intro-section {
-    background: url('../assets/1225697.jpg') no-repeat center center / cover;
-}
 
-.firstdiv .wrapper{
+.firstdiv .wrapper {
   position: absolute;
   bottom: 30%;
   left: 10%;
 }
+
 .scroll-container {
   position: relative;
-  z-index: 5; /* Ensures that the text sections are on top of the 3D model */
+  z-index: 5;
 }
-/* .intro-section{
-  background: rgb(0, 0, 0);
-  background: linear-gradient(43deg, rgb(0, 0, 0) 50%, rgba(64,64,64,1) 100%);
-} */
 
 .three-container {
   position: fixed;
@@ -206,16 +276,16 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 0; /* The 3D model stays in the background */
-  pointer-events: none; /* Prevents interaction with the 3D model */
-  opacity: 1; /* The 3D model is always visible */
+  z-index: 0;
+  pointer-events: none;
+  opacity: 1;
 }
 
 section {
-  height: 100vh; /* Fullscreen sections */
+  height: 100vh;
   background-color: #f4f4f4;
   padding: 2rem;
-  z-index: 10; /* Text is on top of the 3D model */
+  z-index: 10;
 }
 
 .intro-section {
@@ -233,14 +303,4 @@ section {
 .contact-section {
   background-color: #bbb;
 }
-/* 
-h1,
-h2,
-p {
-  margin: 0;
-  text-align: center;
-  font-size: 2rem;
-  color: #333;
-  z-index: 10;
-} */
 </style>
