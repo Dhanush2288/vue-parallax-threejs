@@ -1,97 +1,130 @@
 <template>
-    <div class="scroll-container" data-scroll-container>
-      <section class="content-section" data-scroll-section>
-        <h1>Scroll Down for 3D Magic</h1>
-      </section>
-  
-      <section class="three-section" data-scroll-section>
-        <div class="three-container" ref="threeContainer"></div>
-      </section>
-  
-      <section class="content-section" data-scroll-section>
-        <h2>Keep scrolling...</h2>
-      </section>
+  <div class="post-preview-video-wrapper" @mouseover="handleMouseOver" @mouseleave="handleMouseLeave">
+    <div class="light-border-wrapper">
+      <div class="video-container">
+        <a :href="postLink">
+          <div class="main-wrapper">
+            <div class="gradient-overlay"></div> <!-- Radial gradient overlay -->
+            <div class="main-player">
+              <div
+                class="image-cover"
+                :style="{ backgroundImage: `url(${imageSrc})` }"
+              >
+                <span class="view-post">View Post</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
     </div>
-  </template>
-  
-  <script>
-  import LocomotiveScroll from 'locomotive-scroll';
-  import 'locomotive-scroll/dist/locomotive-scroll.css';
-  import * as THREE from 'three';
-  import { gsap } from 'gsap';
-  
-  export default {
-    name: 'SmoothScroll',
-    mounted() {
-      this.initSmoothScroll();
-      this.initThree();
-      window.addEventListener('scroll', this.handleScroll);
+  </div>
+</template>
+
+<script>
+export default {
+  name: "PostPreview",
+  props: {
+    postLink: {
+      type: String,
+      required: true,
     },
-    methods: {
-      initSmoothScroll() {
-        this.scroll = new LocomotiveScroll({
-          el: document.querySelector('.scroll-container'),
-          smooth: true,
-        });
-      },
-      initThree() {
-        // Initialize Three.js Scene
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.$refs.threeContainer.appendChild(this.renderer.domElement);
-  
-        // Create a simple cube (replaceable with more complex models)
-        this.geometry = new THREE.BoxGeometry(1, 1, 1);
-        this.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        this.cube = new THREE.Mesh(this.geometry, this.material);
-        this.scene.add(this.cube);
-  
-        this.camera.position.z = 5;
-        this.animate();
-      },
-      animate() {
-        requestAnimationFrame(this.animate);
-        this.cube.rotation.x += 0.01;
-        this.cube.rotation.y += 0.01;
-        this.renderer.render(this.scene, this.camera);
-      },
-      handleScroll() {
-        const scrollY = window.scrollY;
-        // Add custom scroll animations for 3D elements
-      },
+    imageSrc: {
+      type: String,
+      required: true,
     },
-    beforeUnmount() {
-      window.removeEventListener('scroll', this.handleScroll);
+  },
+  data() {
+    return {
+      showOverlay: false, // Track whether to show the overlay
+    };
+  },
+  methods: {
+    handleMouseOver() {
+      console.log("Mouse over event triggered"); // Log on mouse over
+      this.showOverlay = true; // Show the overlay
     },
-  };
-  </script>
-  
-  <style scoped>
-  .scroll-container {
-    position: relative;
-  }
-  
-  .content-section {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .three-section {
-    height: 100vh;
-  }
-  
-  .three-container {
-    width: 100vw;
-    height: 100vh;
-  }
-  </style>
-  
+    handleMouseLeave() {
+      console.log("Mouse leave event triggered"); // Log on mouse leave
+      this.showOverlay = false; // Hide the overlay
+    },
+  },
+};
+</script>
+
+<style scoped>
+.post-preview-video-wrapper {
+  position: relative;
+  border-radius: 8px; /* Adjust as needed */
+  overflow: hidden; /* Hide overflow */
+  width: 100%; /* Full width */
+  height: 400px; /* Set a fixed height for the component */
+}
+
+.light-border-wrapper {
+  padding: 1px; /* Border effect */
+  border-radius: inherit; /* Match border-radius */
+  background-color: #ffffff; /* Light border color */
+  height: 100%;
+}
+
+.video-container {
+  position: relative;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  overflow: hidden;
+}
+
+.main-wrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70%; /* Adjust width as needed */
+  aspect-ratio: 1 / 1; /* Maintain aspect ratio */
+  background: radial-gradient(
+    closest-side,
+    rgb(255, 255, 255) 50%,
+    transparent 100%
+  );
+  opacity: 0.2; /* Set the opacity */
+  pointer-events: none; /* Prevent interactions */
+  z-index: -1; /* Behind other content */
+}
+
+.main-player {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+}
+
+.image-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover; /* Ensure image fits nicely */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  transition: opacity 0.3s ease; /* Smooth transition for cover image */
+}
+
+.view-post {
+  opacity: 0;
+  transition: opacity 0.3s ease; /* Smooth transition for "View Post" text */
+}
+
+.image-cover:hover .view-post {
+  opacity: 1; /* Show "View Post" text on hover */
+}
+</style>

@@ -7,6 +7,8 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@lucien144/vue3-parallaxy": "^0.1.2",
+    "@studio-freight/lenis": "^1.0.42",
     "@types/three": "^0.169.0",
     "baffle": "^0.3.6",
     "core-js": "^3.8.3",

@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <SmoothScroll />
+    <router-view /> <!-- This will render the matched component -->
   </div>
 </template>
 
